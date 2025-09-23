@@ -1,0 +1,173 @@
+@using ArchS.Data.AppServices
+@using ArchS.Data.FileManager 
+@using ArchS.Data.Constants 
+
+
+<div class="profile-window"> 
+
+    @if (ProfileCreationService.state == State.SelectDocuments) {
+        <h5 style="text-align: center;">Select Folders and Files</h5> 
+    } 
+    else
+    {
+        <h5 style="text-align: center;">Select the Target Folder</h5> 
+    }
+
+    <div class="columns">
+        @{
+            var data = ProfileCreationService.SelectDocumentsData();
+            var currData1 = data.Item1;
+            var currData2 = data.Item2;
+            var nextData1 = data.Item3;
+            var nextData2 = data.Item4;
+            var selectedBoolList = data.Item5;
+            var isTextDisplayed = data.Item6;
+            var cursorPos = data.Item7;
+        }
+
+        <div class="columns" @onkeydown="HandleKeyDown" tabindex="0">
+            <div class="column left-column">
+                <h6>Current</h6>
+                @for (int i = 0; i < currData1.Count; i++)
+                {
+                    int index = i;
+                    var doc = ProfileCreationService.SelectDocumentsDocs[index]; // <-- need access to Document here
+                    <div class="doc-item @(cursorPos == index ? "highlight" : "")"
+                        @onclick="() => MoveCursor(index)">
+                        <input type="checkbox"
+                            checked="@selectedBoolList[index]"
+                            disabled="@(doc.PathAccess != PathAccessState.Success || !ProfileCreationService.FolderState(index))"
+                            @onchange="() => OnCheckboxChanged(index)"
+                            @onclick:stopPropagation />
+                        <span class="doc-name folder">
+                            @currData1[index]
+                        </span>
+                    </div>
+                }
+                @for (int i = 0; i < currData2.Count; ++i)
+                {
+                    int index = i;
+                    int idx = currData1.Count + i;
+                    var doc = ProfileCreationService.SelectDocumentsDocs[idx];
+                    <div class="doc-item @(cursorPos == idx ? "highlight" : "")"
+                        @onclick="() => MoveCursor(idx)">
+                        @{
+                            if (ProfileCreationService.state == State.SelectTarget && !doc.IsFolder)
+                            {
+                                <span class="doc-name file">@currData2[index]</span>
+                            }
+                            else
+                            {
+                                <input type="checkbox"
+                                    checked="@selectedBoolList[idx]"
+                                    disabled="@(doc.PathAccess != PathAccessState.Success)"
+                                    @onchange="() => OnCheckboxChanged(idx)"
+                                    @onclick:stopPropagation />
+                                <span class="doc-name @(doc.IsFolder ? "folder" : "file")">
+                                    @currData2[index]
+                                </span>
+                            }
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="column right-column">
+                <h6>Next</h6>
+                @for (int i = 0; i < nextData1.Count; i++)
+                {
+                    <div class="doc-item">
+                        <span class="doc-name next-col @(isTextDisplayed ? "text" : "folder")">
+                            @nextData1[i]
+                        </span>
+                    </div>
+                }
+                @if (!isTextDisplayed)
+                {
+                    @for (int i = 0; i < nextData2.Count; i++)
+                    {
+                        <div class="doc-item">
+                            <span class="doc-name next-col file">
+                                @nextData2[i]
+                            </span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <button @onclick="OnCancel">Cancel</button>
+        <input type="text" @bind="inputPath" placeholder="Enter path..." />
+        <button @onclick="Navigate">Go</button>
+        <button @onclick="OnNextPhase" disabled="@( !ProfileCreationService.HasSelection() )">
+            @(ProfileCreationService.state == State.SelectDocuments ? "Select Target" : "Go to settings")
+        </button>
+    </div>
+</div> 
+
+@code {
+    [Parameter] public required ProfileCreationService ProfileCreationService { get; set; }
+    [Parameter] public EventCallback PhaseChanged { get; set; }
+    private string? inputPath;
+
+    private async Task OnNextPhase()
+    {
+        if (!ProfileCreationService.HasSelection())
+        {
+            return;
+        }
+        ProfileCreationService.ChangeState();
+        await PhaseChanged.InvokeAsync(); 
+    }
+
+    private async Task OnCancel() 
+    {
+        ProfileCreationService.Disable();
+        await PhaseChanged.InvokeAsync(); 
+    }
+
+    private void Navigate() {
+        if (!string.IsNullOrWhiteSpace(inputPath)) {
+            ProfileCreationService.GotoPath(inputPath);
+            inputPath = string.Empty;
+        }
+    }
+
+    private void OnCheckboxChanged(int index)
+    {
+        ProfileCreationService.ToggleSelection(index); 
+        StateHasChanged();
+    }
+ 
+    private void MoveCursor(int index)
+    {
+        ProfileCreationService.ClickDocument(index);  // move cursor without navigation
+        StateHasChanged();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowUp":
+                ProfileCreationService.HandleKey(KeysConstants.ARROW_UP);
+                break;
+            case "ArrowDown":
+                ProfileCreationService.HandleKey(KeysConstants.ARROW_DOWN);
+                break;
+            case "ArrowLeft":
+                ProfileCreationService.HandleKey(KeysConstants.ARROW_LEFT);
+                break;
+            case "ArrowRight":
+                ProfileCreationService.HandleKey(KeysConstants.ARROW_RIGHT);
+                break;
+            case "Enter":
+                ProfileCreationService.HandleKey(KeysConstants.ENTER);
+                break;
+            default:
+            break;
+        }
+    }
+}

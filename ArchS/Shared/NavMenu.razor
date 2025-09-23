@@ -1,0 +1,38 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">ArchS</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <nav class="nav flex-column"></nav>
+        <a class="nav-link" href="/">Home</a>
+        <a class="nav-link" href="/manage">Manage Profiles</a>
+        <a class="nav-link" href="/profile/create">Create Profile</a>
+    </nav>
+</div>
+
+@*
+top-row — custom class for layout/positioning.
+ps-3 — Bootstrap utility, padding-start (left padding) level 3.
+navbar — Bootstrap navbar container (gives baseline navbar styles).
+navbar-dark — navbar color theme (dark text on light or vice versa depending on CSS).
+
+
+*@
+
+@code {
+    private bool collapseNavMenu = true; // true if menu is collapsed (hidden), false if expanded (visible)
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null; // colapse is a Bootstrap CSS class
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu; 
+    }
+}
+

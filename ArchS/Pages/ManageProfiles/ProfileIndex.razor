@@ -1,0 +1,98 @@
+@page "/manage/{Id:guid}"
+@using ArchS.Data.AppServices
+@using System.Collections.Generic
+@using ArchS.Data 
+@using ArchS.Data.ProfileManager
+@inject BackupService BackupService
+@inject NavigationManager Navigation
+
+<h3 style="color: #aef2da; font-family: sans-serif;">Profile Details</h3>
+
+@{
+    Profile? profile = BackupService.GetProfile(Id);
+}
+@if (profile is not null)
+{
+    Profile profile_ = (Profile)profile;
+    <div class="profile-details-container">
+        <p style="color: #afebf3;"><strong style="color: #8baef5;">Name:</strong> @profile_.Name</p>
+
+        <p><strong style="color: #8baef5;">Folders:</strong></p>
+        <ul>
+            @foreach (var folder in profile_.Folders ?? Enumerable.Empty<string>())
+            {
+                <li style="color: #e0f795;">@folder</li>
+            }
+        </ul>
+
+        <p><strong style="color: #8baef5;">Files:</strong></p>
+        <ul>
+            @foreach (var file in profile_.Files ?? Enumerable.Empty<string>())
+            {
+                <li style="color: #e0f795;">@file</li>
+            }
+        </ul>
+
+        <p style="color:#e0f795;"><strong style="color: #8baef5;">Target Path:</strong> @profile_.TargetPath </p>
+        <p style="color:#f07676;"><strong style="color: #8baef5;">Keep Structure:</strong> @(profile_.KeepStructure ? "True": "False")</p>
+        <p style="color:#f07676;"><strong style="color: #8baef5;">Keep Track of Updates:</strong> @(profile_.KeepTrackFlag ? "True": "False")</p>
+
+        <p><strong style="color: #2af041;">Keep Track of Updates? : </strong>
+            <input type="checkbox" @bind="TrackFlag" />
+        </p>
+
+        <div class="profile-actions"> 
+            <button class="btn" style="border: 2px solid #d633d6; appearance: none; background-color: #000000; color: #e1f3ac; padding: 6px 8px; font-size: 1rem;" @onclick="DeleteBackupSafe">Delete Backup</button> 
+            <button class="btn" style="border: 2px solid #d633d6; appearance: none; background-color: #000000; color: #e1f3ac; padding: 6px 8px; font-size: 1rem;" @onclick="DeleteMetadataSafe">Delete Metadata</button> 
+            <button class="btn" style="border: 2px solid #d633d6; appearance: none; background-color: #000000; color: #e1f3ac; padding: 6px 8px; font-size: 1rem;"  @onclick="UpdateChangesSafe">Update Changes</button> 
+        </div>
+    </div>
+}
+else
+{
+    <p>Profile not found.</p>
+}
+<div class="go-back-container" style="margin-top: 20px;">
+    <button class="btn" style="border: 2px solid #d633d6; appearance: none; background-color: #000000; color: #e1f3ac; padding: 6px 8px; font-size: 1rem;" @onclick="GoBack">Go Back</button>
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; } 
+    private bool TrackFlag;
+
+    protected override void OnInitialized() // preapares the data, to render again StateHasChanged() 
+    {
+        TrackFlag = false;
+    }
+
+    private void MyStateHasChanged()
+    {
+        TrackFlag = false;
+        StateHasChanged(); 
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/manage");
+    }
+
+    private void DeleteBackupSafe()
+    {
+        BackupService.DeleteProfileById(Id, true);  
+        MyStateHasChanged();
+    }
+
+    private void DeleteMetadataSafe()
+    {
+        BackupService.DeleteProfileById(Id, deleteBackupFolder: false);
+        MyStateHasChanged();
+
+    }
+
+    private void UpdateChangesSafe()
+    {
+        BackupService.ChangeTrackFlag(Id, TrackFlag);
+        MyStateHasChanged();
+     
+    }
+}

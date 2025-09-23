@@ -1,0 +1,99 @@
+﻿@page "/manage"
+@using ArchS.Data.AppServices
+@using System.Collections.Generic
+@inject BackupService BackupService
+@inject NavigationManager Navigation
+
+<div class="profiles-table-header">
+    <h3 style="color: #aef2da; font-family: sans-serif;">Your profiles</h3>
+    <p style="color: #aef2da;">Here you can see existing profiles, enable/disable updates, or delete them.</p>
+</div>
+<div class="profiles-table-container" style="border: none; padding: 0;">
+    <table class="table profiles-table table-borderless table-hover" style="border: none; border-collapse: collapse; width:100%;">
+    <thead>
+        <tr>
+            <th style="color: #8baef5;">Name</th>
+            <th style="color: #8baef5;">Saved At</th>
+            <th style="color: #8baef5;">Update</th>
+        </tr>
+    </thead>
+    <tbody>
+        @for (int i = 0; i < Profiles.Count; i++)
+        {
+            Tuple<string, string, Guid>? profile = Profiles[i];
+            <tr class="profile-row" 
+                @onclick="() => OpenProfile(profile.Item3)" 
+                style="cursor: pointer;" 
+                onmouseover="this.style.backgroundColor='#5a0435';" 
+                onmouseout="this.style.backgroundColor='';">
+                <td style="color: #a4ef48;">@profile.Item1</td>
+                <td style="color: #66e1f2;">@profile.Item2</td>
+                <td>
+                    @if(HasProfileUpdate(profile.Item3)) {
+                        <button class="btn" 
+                            style="border: 2px solid #d633d6; appearance: none; background-color: #000000; color: #e1f3ac; padding: 6px 8px; font-size: 1rem;"
+                            @onclick="@(e => UpdateBackup(profile.Item3))"
+                            @onclick:stopPropagation>
+                            Update
+                        </button>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+</div>
+<div>
+    <button class="btn" style="border: 2px solid #d633d6; appearance: none; background-color: #000000; color: #e1f3ac; padding: 6px 8px; font-size: 1rem;" @onclick="UpdateAllSafe">Update all at the same time</button>
+</div>
+
+@code {
+    private List<Tuple<string, string, Guid>> Profiles = new List<Tuple<string, string, Guid>>();
+
+    protected override void OnInitialized()
+    {
+        LoadProfiles();
+        BackupService.ProfileUpdateEvent += UpdateDisplayedData;
+    }
+
+    private void UpdateDisplayedData()
+    {
+        InvokeAsync(() =>
+        {
+            LoadProfiles();
+            StateHasChanged();
+        });
+    }
+
+    private void LoadProfiles()
+    {
+        Profiles = BackupService.GetProfilesTableData() ?? new List<Tuple<string, string, System.Guid>>();
+    }
+
+    private void OpenProfile(Guid id)
+    {
+        Navigation.NavigateTo($"/manage/{id}");
+    }
+
+    private async Task UpdateBackup(Guid id)
+    {
+        await BackupService.UpdateProfileAsync(id);
+        LoadProfiles();
+        StateHasChanged();
+    }
+
+    private async Task UpdateAllSafe() 
+    {
+        if (Profiles.Count == 0) return;
+        List<Guid> ids = Profiles.Select(info => info.Item3).ToList();
+        await BackupService.UpdateAllAsync(ids);
+        LoadProfiles();
+        StateHasChanged();
+    }
+
+    private bool HasProfileUpdate(Guid id)
+    {
+        return BackupService.HasProfileUpdate(id);  
+    }
+
+}

@@ -1,0 +1,20 @@
+@using ArchS.Shared
+
+<div class="navigator-placeholder">
+    <p>File/folder navigator will appear here</p>
+    <!-- Replace this with your actual navigation UI -->
+</div>
+
+@code {
+    [Parameter]
+    public List<string> SelectedItems { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<List<string>> SelectedItemsChanged { get; set; }
+
+    // Call this method whenever the selection changes:
+    private async Task OnSelectionChanged()
+    {
+        await SelectedItemsChanged.InvokeAsync(SelectedItems);
+    }
+}

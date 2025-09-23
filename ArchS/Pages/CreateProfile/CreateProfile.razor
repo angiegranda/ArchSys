@@ -1,0 +1,59 @@
+﻿@page "/profile/create"
+@using ArchS.Data.AppServices @* ProfileCreationService and BackupService belongs here*@
+@using ArchS.Data.ProfileManager
+@inject ProfileCreationService ProfileCreationService
+@inject BackupService BackupService
+
+
+<div class="profile-creation" tabindex="0">
+    @if (ProfileCreationService.state == State.Unused)
+    {
+        <div class="start-container">
+            <button class="start-button" @onclick="StartProfile">
+                Create New Profile
+            </button>
+        </div>
+    }
+    else
+    {
+        @switch (ProfileCreationService.state)
+        {
+            case State.SelectDocuments:
+                <DocumentSelection ProfileCreationService="@ProfileCreationService" PhaseChanged="OnPhaseChanged"/> 
+                break;
+            case State.Settings:
+                <SettingSelection ProfileCreationService="@ProfileCreationService" PhaseChanged="OnPhaseChanged"/> 
+                break;
+            case State.SelectTarget:
+                <DocumentSelection ProfileCreationService="@ProfileCreationService" PhaseChanged="OnPhaseChanged"/> 
+                break;
+            case State.Finished:
+                Finish();
+                break;
+        }
+    }
+</div>
+
+@code {
+    private void StartProfile()
+    {
+        ProfileCreationService.Start();
+        StateHasChanged();  // forces Blazor to render the page
+    }
+
+    private void Finish()
+    {
+        Profile? profile = ProfileCreationService.GetNewProfile();
+        if (profile is not null)
+        {
+            BackupService.AddProfile((Profile)profile); 
+            ProfileCreationService.ChangeState();
+        }
+        StateHasChanged();
+    }
+
+    private void OnPhaseChanged()
+    {
+        StateHasChanged();
+    }
+}
