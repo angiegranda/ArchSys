@@ -3,13 +3,15 @@ using ArchS.Data.Constants;
 using ArchS.Data.NotifierServices;
 namespace ArchS.Data.BackupServices;
 
-
 /// <summary>
 /// BackupExecutor uses multithread by running in parallel (up to ParallelismDegree in BackupOptions)
-/// by making each item an asynchronous Task that waits for the permission of the semaphore, effectively 
-/// and non-blocking threads calls CopyFileAsync which uses IO operations (ReadAsync returns a Task) and 
+/// by making each item an asynchronous Task that waits for the permission of the semaphore. 
+/// 
+/// Non-blocking threads calls CopyFileAsync which uses IO operations (ReadAsync returns a Task) and 
 /// it does not block the calling thread from ExecuteAsync but before-after it uses threads from the 
-/// thread pool. The usage of Interlocked to modify itemsCompleted and bytesCopied by many tasks at the same 
+/// thread pool. 
+/// 
+/// The usage of Interlocked to modify itemsCompleted and bytesCopied by many tasks at the same 
 /// time also is safe. Task.WhenAll(tasks) makes all the tasks allowed by the semaphore to run concurrently
 /// </summary>
 
@@ -98,7 +100,7 @@ public sealed class BackupExecutor
             {
                 errors.Add($"[PATH]: {item.SourcePath} [ERROR]: {ex.Message}");
             }
-            Interlocked.Increment(ref itemsCompleted); // adds 1 
+            Interlocked.Increment(ref itemsCompleted); 
             var progress = new BackupProgress
             {
                 State = BackupProcessConstants.STAGE_RUNNING,
@@ -130,14 +132,14 @@ public sealed class BackupExecutor
         return errors.ToList();
     }
 
-    // what would happen here is the file does not have the permisions? would this crash or would it returns a exception?
+    // any erros will be catched in ExecuteAsync
     private static async Task CopyFileAsync(string sourceFilePath, string targetFilePath, int bufferBytes)
     {
         if (!File.Exists(sourceFilePath))
             throw new FileNotFoundException();
 
         var fileInfo = new FileInfo(sourceFilePath);
-        // await using will despose the files after the task is done 
+        // await using will dispose the files after the task is done 
         await using var input = new FileStream(
             sourceFilePath, FileMode.Open, FileAccess.Read, FileShare.Read, bufferBytes, useAsync: true);
         await using var output = new FileStream(

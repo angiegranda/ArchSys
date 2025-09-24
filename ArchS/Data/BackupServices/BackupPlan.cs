@@ -1,22 +1,23 @@
-using ArchS.Data.FileManager; //BackupFileManager 
+using ArchS.Data.FileManager;
 using ArchS.Data.ProfileManager;
-using Microsoft.AspNetCore.Http.Features;
 using System.Collections.Concurrent;
 namespace ArchS.Data.BackupServices;
 
-public sealed class BackupPlan 
+/// <summary>
+/// This class receives a profile and builds an archive which is a wrapper of ArchiveItems list (those contain source, target and size fields)
+/// It inspects if the source path is accesible, if it is not then it is added to a list errors that will be retrived as well.
+/// 
+/// KeepStructure Cases:
+/// - If KeepStructure is true, means starting at the common parent path of the selected files/folders and then copy only the intended information 
+/// into the backup file while keeping the internal folders structure.
+///     - common parent is null when: 
+///             - case 1: there is a single source file/folder
+///             - case 2: the common parent is the root 
+/// -If KeepStructure is false, folder and files will be directly copied to the directory managing name collitions 
+///</summary>
+/// 
+public sealed class BackupPlan
 {
-    /// <summary>
-    /// Cases:
-    /// - KeepStructure is true, which means starting at the common parent path of the selected files/folders and then copy only the intended information 
-    /// into the backup file while keeping the internal folders structure.
-    ///     - common parent is null when: 
-    ///             - case 1: there is a single source file/folder
-    ///             - the common parent is the root 
-    /// - No keep Structures folder and files will be directly copied to the directory managing name collitions 
-    /// This function handles the filePath to copy, but whether there is a renaming of the folder due to collisions or other cases on 
-    /// forming the target file path to be created must be handed here
-    ///</summary>
     private static ArchiveItem? GetArchiveItem(bool isUpdate, Profile profile, string originalSelectedPath, string filePath, string? commonParent)
     {
         string targetPath;
@@ -95,8 +96,8 @@ public sealed class BackupPlan
             var folderState = PathScan.InspectUnixPath(folderPath, isFolder: true, wantRead: true, wantWrite: false, deepCheck: false);
             if (folderState != PathAccessState.Success)
             {
-                failedPaths.Add($"[PATH]: {folderPath} [ERROR]: {PathScan.GetFolderStateString(folderState)}"); 
-                return; 
+                failedPaths.Add($"[PATH]: {folderPath} [ERROR]: {PathScan.GetFolderStateString(folderState)}");
+                return;
             }
             // here is the error, so we want to copy to the backup /last folder name of folderPath and so on in the future .... 
             // but since we use recursion I get lost with this folderPath and so the path is changed and I cannot keep track of it 

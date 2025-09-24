@@ -2,8 +2,7 @@ namespace ArchS.Data.BackupServices;
 
 /// <summary>
 /// This class records the process of the backup so it can be sent to Notifier and send notifications
-/// about the backup progress. Also it records the Errors which later will be written to a hidden file 
-/// .Errors with the respective exceptions 
+/// about the backup progress.
 /// </summary>
 public sealed class BackupProgress
 {

@@ -1,9 +1,11 @@
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
-using ArchS.Data.FileManager; // PathScan Document 
+using ArchS.Data.FileManager; 
 using ArchS.Data.Constants;
 namespace ArchS.Data.AppServices;
+
+/// <summary>
+/// Costum File Explorer which keeps track of selected files and folders and allow multiple selection 
+/// or single selection (just folder)
+/// </summary>
 
 public enum ExplorerState { MultipleSelection, SingleSelection };
 public class FileExplorerService

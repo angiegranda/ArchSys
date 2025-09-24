@@ -34,7 +34,7 @@ public class Profile
         TargetPath = targetPath;
         KeepStructure = keepStructure;
         KeepTrackFlag = keepTrackFlag;
-        SavedAt = DateTime.UtcNow;
+        SavedAt = DateTime.Now;
         Mapping = mapping;
     }
 

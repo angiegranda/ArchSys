@@ -1,9 +1,13 @@
 using ArchS.Data.FileManager;
 using ArchS.Data.ProfileManager;
 using ArchS.Data.Constants;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 namespace ArchS.Data.AppServices;
+
+/// <summary>
+/// This class handles the creation of a profile through States. It communicates with the components in Pages/CreateProfile
+/// and uses FileExplorerService to display data in the UI, perform actions (go down up, move to parent or selected folder)
+/// BackupService receives the created profile.
+/// </summary>
 
 public enum State { SelectDocuments, Settings, SelectTarget, Finished, Unused };
 

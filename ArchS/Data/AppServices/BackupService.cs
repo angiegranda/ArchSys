@@ -7,15 +7,33 @@ using static System.Console;
 using System.Runtime.InteropServices;
 namespace ArchS.Data.AppServices;
 
+/// <summary>
+/// This class communicates with the UI and allows to:
+///     - Add a profile
+///     - Update a specific profile (automatic detection of changes and semi-automatic update)
+///     - Update the keep track flag 
+///     - Remove the metadata of the profile so that the app forgets about it 
+///     with the option to remove also the backup the backup folder
+/// Then it has two background workers:
+///     - The first, checks every 3 seconds (+ the time needed to explore all data) if there are files 
+///     added or modified in the source file-files of the backups who have enable the keep track flag, 
+///     if it finds such files, it will send a notification to UI to display the update bottom to those 
+///     who enabled it. 
+///     - The seconds checks every 5 seconds if there is a new discovered hard drive connected and if 
+///     it does, checks if there is any profile that was not displayed yet and contain the path of the 
+///     hard drive as source or target, this is done in BackupFileManager.cs
+/// Adding the profiles is performed sequencially, processing the files to copy is done in parallel
+/// </summary>
 
 public class BackupService : IDisposable
 {
     private List<Profile> _allProfiles;
     private ConcurrentQueue<Profile> _profilesToAdd;
-    private Dictionary<Guid, bool> _profileUpdateCache = new Dictionary<Guid, bool>(); // key = profile id, value = bool whether to display bottom update or not 
-    public IReadOnlyDictionary<Guid, bool> ProfileUpdateCache => _profileUpdateCache; // accessible from the UI 
-    private readonly SemaphoreSlim _updateLock = new SemaphoreSlim(1, 1); // at most one thread can enter immediately and only one is allowed during the process
-    // SemaphoreSlim works as a mutex but can be used in async methods
+    private Dictionary<Guid, bool> _profileUpdateCache = new Dictionary<Guid, bool>(); 
+    public IReadOnlyDictionary<Guid, bool> ProfileUpdateCache => _profileUpdateCache; 
+    private readonly SemaphoreSlim _updateLock = new SemaphoreSlim(1, 1);
+    // at most one thread can enter immediately and only one is allowed during the process
+    // SemaphoreSlim works as a mutex but can be used in async methods because of WaitAsync()
     public event Action? ProfileUpdateEvent;
     private HashSet<string> _knownMounts = new HashSet<string>();
     private CancellationTokenSource? _cancelMountToken;
@@ -35,8 +53,7 @@ public class BackupService : IDisposable
 
 
     /// <summary>
-    /// Detect when a new directory is added into the folder where the hard drives are mounted
-    /// Background worker so when a path is a target/source and it is detected it will appear in the list 
+    /// Background worker --- Detects newly found paths in the /Volumes directory 
     /// </summary>
     public void StartMountWatcher()
     {
@@ -97,8 +114,8 @@ public class BackupService : IDisposable
 
 
     /// <summary>
-    /// Background worker checking every 5 seconds if there is an change on source files for the 
-    /// profiles who have active KeepTrack Flag
+    /// Background worker --- Checks constantly for added/modified data in source paths for profiles 
+    /// who enables keep track of updates
     /// </summary>
     public void StartUpdateWatcher()
     {
@@ -170,7 +187,7 @@ public class BackupService : IDisposable
         }
     }
 
-    private void RunInBackground(Func<Task> work)
+    private void RunInBackground(Func<Task> work) //safe fire and forget
     {
         _ = Task.Run(async () =>
         {
@@ -190,7 +207,7 @@ public class BackupService : IDisposable
         bool exists = _allProfiles.Any(profile_ => profile_ == profile);
         if (exists) return;
         _profilesToAdd.Enqueue(profile);
-        RunInBackground(ProcessProfilesAsync); // fire and forget because the errors are all handled in the other functions
+        RunInBackground(ProcessProfilesAsync); // Errors are all handled in the other functions
         BackupFileManager.SaveProfile(profile);
     }
 
@@ -201,8 +218,11 @@ public class BackupService : IDisposable
     }
 
 
-    // Specifically getting the ids from the UI because at any moment _allProfiles could be uddated and not yet displayed in the UI and that 
-    // would make selecting the update of a backup not known it was there 
+    /// <summary>
+    /// We get the IDs directly from the UI because _allProfiles may be updated in the background 
+    // and not yet reflected in the UI. This ensures that selecting a backup to update uses the IDs 
+    // that are currently visible and known to the user
+    /// </summary>
     public async Task UpdateAllAsync(List<Guid> ids)
     {
         for (int i = 0; i < ids.Count; ++i)
@@ -221,7 +241,7 @@ public class BackupService : IDisposable
         if (index == -1) return;
         var profile = _allProfiles[index];
         var errors = await ProfileHandler.UpdatesBackupAsync(profile, _executor, _notifier).ConfigureAwait(false);
-        DateTime updatedDate = DateTime.UtcNow;
+        DateTime updatedDate = DateTime.Now;
         profile.SavedAt = updatedDate;
         BackupFileManager.UpdateProfileProperty<DateTime>(profile, "SavedAt", updatedDate);
         BackupFileManager.UpdateErroFile(profile, errors);
@@ -248,14 +268,12 @@ public class BackupService : IDisposable
 
 
     // IU Functions
+    
 
     public void DeleteProfileById(Guid profileId, bool deleteBackupFolder)
     {
         var index = _allProfiles.FindIndex(profile => profile.Id == profileId);
-        if (index == -1)
-        {
-            return;
-        }
+        if (index == -1) return;
         var profile = _allProfiles[index];
         BackupFileManager.DeleteProfile(profile, deleteBackupFolder);
         _profileUpdateCache.Remove(profile.Id);
@@ -265,10 +283,7 @@ public class BackupService : IDisposable
     public Profile? GetProfile(Guid id)
     {
         int index = _allProfiles.FindIndex(profile => profile.Id == id);
-        if (index == -1)
-        {
-            return null;
-        }
+        if (index == -1) return null;
         return _allProfiles[index];
     }
 

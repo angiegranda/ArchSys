@@ -55,13 +55,14 @@ The applications is constantly checking for updates and the speed of the detecti
 
 ### Features
 
-- Multithread: Copying source-target paths are done in parallel up to max degree of parallelism. 
-- Reflection:Used to serialize modifying an attribute of the profile, such as the SavedAt time and the keep track flag.
-UpdateProfileProperty function in BackupFileManager.cs
-- Asyncronous Task: used in many places too ... [TODO]
-- LINQ: Used in many places.... [TODO]
-
-- JSON serialization: Used to save the profile class data in targetfolder/.backup/profilename.json file. This is handled in BackupFileManager.cs
+- Multithread: Copying source-target paths are done in parallel up to max degree of parallelism. Processing Profiles are also done in parallel.   
+- Reflection: Used to serialize modifying an attribute of the profile, such as the SavedAt time and the keep track flag.
+UpdateProfileProperty function in BackupFileManager.cs. 
+- Asyncronous Task: Mainly in BackupService and BackupExecutor, functions such as CopyFileAsync which uses IO operations 
+so it does not block the calling thread from ExecuteAsync but before-after it uses threads from the thread pool.   
+- LINQ: efficiently filter out empty lines, check for existence in a list, or take only the first N relevant lines—makes the intent readable and avoids extra loops.
+- JSON serialization: Used to save the profile class data in targetfolder/.backup/profilename.json file. This is handled in BackupFileManager.cs. 
+- Events: BackupService declares and event that ManageProfiles.razor component subscribes (through a method of type Action) and whenever information about the update of profiles is found it notified the UI to displayed the actualized data.   
 
 ### Code structure
 ```

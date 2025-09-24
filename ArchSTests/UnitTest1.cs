@@ -1,24 +1,19 @@
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Collections.Generic;
-using System.IO;
 using Xunit;
-using System.Linq;
 using Xunit.Abstractions;
 using Xunit.Sdk;
-using ArchS.Data;
 using ArchS.Data.ProfileManager;
 using ArchS.Data.FileManager;
 using ArchS.Data.AppServices;
-using ArchS.Data.NotifierServices;
+using System.Data;
 namespace Tests;
 
-// TEST MAC :  dotnet test ArchS.sln --framework net8.0 --logger "console;verbosity=detailed" 
+// dotnet test ArchS.sln --logger "console;verbosity=detailed" 
 
 public class TestOrderer : ITestCaseOrderer
 {
     public IEnumerable<TTestCase> OrderTestCases<TTestCase>(IEnumerable<TTestCase> testCases) where TTestCase : ITestCase
     {
-        var order = new List<string> { "TestBackup", "UpdateKeepTrackFlag", "UpdateBackup", "TestMappingOfFiles", "TestReflectionProfileMetadataUpdate", "TestDeleteBackups"};
+        var order = new List<string> { "TestBackup", "UpdateKeepTrackFlag", "UpdateBackup", "TestMappingOfFiles", "TestUpdateNoKeepStructure", "TestReflectionProfileMetadataUpdate", "TestDeleteBackups"};
         return testCases.OrderBy(tc => order.IndexOf(tc.TestMethod.Method.Name));
     }
 }
@@ -40,6 +35,8 @@ public class BackUpControllerFixture : IDisposable
 
     public Profile Backup1_KeepStructure { get; private set; }
     public Profile Backup2_NoKeepStructure { get; private set; }
+
+    public Tuple<Dictionary<string, string>, Dictionary<string, string>> Mapping;
 
     // ArchSTests
     //      - SourceFolderTest1
@@ -90,7 +87,7 @@ public class BackUpControllerFixture : IDisposable
             TargetFolder, true, false);
         Controller.AddProfile(Backup1_KeepStructure);
 
-        var mapping = BackupFileManager.GetProfileMapping(
+        Mapping = BackupFileManager.GetProfileMapping(
             new List<string> { SourceFolder1, SourceFolder2 },
             new List<string> { SourceFile1, SourceFile2 }
         );
@@ -99,7 +96,7 @@ public class BackUpControllerFixture : IDisposable
         Backup2_NoKeepStructure = new Profile("Backup2",
             new List<string> { SourceFolder1, SourceFolder2 },
             new List<string> { SourceFile1, SourceFile2 },
-            TargetFolder, false, true, mapping);
+            TargetFolder, false, true, Mapping);
         Controller.AddProfile(Backup2_NoKeepStructure);
 
     }
@@ -204,14 +201,31 @@ public class UniTest : IClassFixture<BackUpControllerFixture>
     }
 
     [Fact]
+    public async Task TestUpdateNoKeepStructure()
+    {
+        var targetPath = Path.Combine(_fixture.TargetFolder, "Backup2", _fixture.Mapping.Item1[_fixture.SourceFolder1], "FileName.txt");
+        Assert.True(File.Exists(targetPath));
+        string previousContent = ReadTextShared(targetPath);
+        var sourcePath = Path.Combine(_fixture.SourceFolder1, "FileName.txt");
+        File.WriteAllText(sourcePath, ".....");
+        await _fixture.Controller.UpdateProfileAsync(_fixture.Backup2_NoKeepStructure.Id);
+        string newContent = ReadTextShared(targetPath);
+        Assert.Equal(".....", newContent);
+        Assert.NotEqual(previousContent, newContent);
+    }
+
+
+    [Fact]
     public void TestReflectionProfileMetadataUpdate()
     {
         Profile? profile1 = _fixture.Controller.GetProfile(_fixture.Backup1_KeepStructure.Id);
         Profile profile = (Profile)profile1!;
         DateTime time = profile.SavedAt;
-        BackupFileManager.UpdateProfileProperty<DateTime>(profile, "SavedAt", DateTime.UtcNow);
-        Profile? profile2 = _fixture.Controller.GetProfile(_fixture.Backup1_KeepStructure.Id);
-        Assert.True(profile2!.SavedAt > time);
+        BackupFileManager.UpdateProfileProperty<DateTime>(profile, "SavedAt", DateTime.Now);
+        List<Profile> profiles = BackupFileManager.GetProfiles();
+        int index = profiles.FindIndex(p => p == profile);
+        Assert.True(index != -1);
+        Assert.True(profiles[index].SavedAt > time);
     }
 
     [Fact]
