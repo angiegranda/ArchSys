@@ -1,4 +1,4 @@
-# ArchS 
+# Semiautomatic Archivation System for MacOs (Linux and Windows in progress)
 
 #### Semestral project for Advanced C# course. This app a local desktop application with a browser-based UI for semi-automatically archiving files and directories to another location, such as a local or external drive. It tracks changes in your data and synchronizes only new or modified files. It also allows enable/disable keeping track on the changes. The app targets currently only MacOS but can be extended to function for Linux and Windows.
 
