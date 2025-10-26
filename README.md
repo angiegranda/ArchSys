@@ -2,6 +2,8 @@
 
 #### Semestral project for Advanced C# course. This app a local desktop application with a browser-based UI for semi-automatically archiving files and directories to another location, such as a local or external drive. It tracks changes in your data and synchronizes only new or modified files. It also allows enable/disable keeping track on the changes. The app targets currently only MacOS but can be extended to function for Linux and Windows.
 
+----------------------------------------------------------------------------
+
 ## Prerequisites & Setup
 
 To run this Blazor Server application, make sure you have installed:  
@@ -19,7 +21,11 @@ Microsoft.Hosting.Lifetime[14]
 Now listening on: [ADDRESS HERE]
 ```
 
+----------------------------------------------------------------------------
+
 ## User Documentation
+
+----------------------------------------------------------------------------
 
 ### Creating a Profile
 
@@ -34,6 +40,8 @@ File explorer: The explorer is customized to provide a clear view of the current
 
 After creation of the profile, there will be desktop notifications that the backup started and the progress when reaching 25% - 50% - 75% - 100% milestones. If the applications is shut down while the process runs then the remaning files can be updated (if the keep track flag is enabled) next time the app is launched. Once the process is completed, the profile will appear in **Managing your profiles**
 
+----------------------------------------------------------------------------
+
 ### Managing your profiles 
 
 There is a list of the profiles which both source files/folders and target folder are found. If the backup data was created from or to a external hard drive then it will only appear in the list when the hard drive is detected. 
@@ -45,13 +53,19 @@ If the Keep Track Flag is enabled and there has been a modified/added file in th
 
 The applications is constantly checking for updates and the speed of the detection and displayed as a bottom will vary depending on how much source data it needs to keep track, be patient waiting for it. 
 
+----------------------------------------------------------------------------
+
 ## Developer Documentation 
+
+----------------------------------------------------------------------------
 
 ### Technologies
 
 -   Blazor Server: Web framework (part of ASP.NET Core) that runs UI components on the server, sends updates to the browser over SignalR in real time.  
 -   ASP.NET Core: provides the hosting model, middleware pipeline, configuration system (appsettings.json), dependency injection, authentication/authorization, logging. Blazor Server runs inside an ASP.NET Core application.
 -   xUnit: Unit testing framework, it allows custom test orderer to control test execution order.
+
+----------------------------------------------------------------------------
 
 ### Features
 
@@ -63,6 +77,8 @@ so it does not block the calling thread from ExecuteAsync but before-after it us
 - LINQ: efficiently filter out empty lines, check for existence in a list, or take only the first N relevant lines—makes the intent readable and avoids extra loops.
 - JSON serialization: Used to save the profile class data in targetfolder/.backup/profilename.json file. This is handled in BackupFileManager.cs. 
 - Events: BackupService declares and event that ManageProfiles.razor component subscribes (through a method of type Action) and whenever information about the update of profiles is found it notified the UI to displayed the actualized data.   
+
+----------------------------------------------------------------------------
 
 ### Code structure
 ```
